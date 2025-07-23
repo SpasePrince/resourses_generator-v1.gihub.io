@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script>
+    <title>Матричный генератор</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .matrix-container {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+            justify-content: center;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(135deg, var(--main-color), var(--main-color-dark));
+        }
+
+        .cell:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .cell:hover::before {
+            opacity: 1;
+        }
+
+        .cell-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .cell-name {
+            font-size: 10px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1.2;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .cell-coordinates {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 8px;
+            opacity: 0.7;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1px 3px;
+            border-radius: 3px;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .legend-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .legend-icon {
+            font-size: 18px;
+            margin-right: 10px;
+        }
+
+        .legend-text {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .size-controls {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-group label {
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        input[type="range"] {
+            width: 150px;
+            height: 6px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .resource-selection {
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .resource-selection h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: white;
+            font-size: 1.5em;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .resource-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .checkbox-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 15px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .checkbox-content {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .checkbox-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .checkbox-icon {
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        .checkbox-text {
+            color: white;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .selection-controls {
+            text-align: center;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-small:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-small:active {
+            transform: translateY(0);
+        }
+
+        /* Модальное окно статистики */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            color: white;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0 10px;
+        }
+
+        .close:hover {
+            color: #ccc;
+            transform: scale(1.1);
+        }
+
+        .stats-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .stats-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stats-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            padding-left: 10px;
+            border-radius: 8px;
+        }
+
+        .stats-item:last-child {
+            border-bottom: none;
+        }
+
+        .stats-resource {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .stats-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .stats-icon {
+            font-size: 18px;
+            margin-right: 10px;
+        }
+
+        .stats-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .stats-percentage {
+            font-size: 16px;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .stats-percentage.dominant {
+            background: rgba(255, 215, 0, 0.3);
+            color: #FFD700;
+        }
+
+        .region-coordinates {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 10px;
+            text-align: center;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .size-controls {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .slider-group {
+                width: 100%;
+            }
+            
+            input[type="range"] {
+                width: 200px;
+            }
+            
+            .cell-name {
+                font-size: 8px;
+            }
+            
+            .cell-icon {
+                font-size: 20px;
+            }
+            
+            .resource-checkboxes {
+                grid-template-columns: 1fr;
+            }
+            
+            .selection-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 5% auto;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Матрица ресурсов 7×8</h1>
+        
+        <div class="controls">
+            <div class="size-controls">
+                <div class="slider-group">
+                    <label for="rows">Строки: <span id="rowsValue">7</span></label>
+                    <input type="range" id="rows" min="4" max="15" value="7" oninput="updateMatrixSize()">
+                </div>
+                <div class="slider-group">
+                    <label for="cols">Столбцы: <span id="colsValue">8</span></label>
+                    <input type="range" id="cols" min="4" max="15" value="8" oninput="updateMatrixSize()">
+                </div>
+            </div>
+            <button class="btn" onclick="generateMatrix()">🎲 Перегенерировать матрицу</button>
+
+            <div style="margin-top: 15px; text-align: center;">
+            <input id="seedInput" type="text" placeholder="Сид генерации" style="padding: 8px; border-radius: 8px; width: 200px;">
+            <button class="btn-small" onclick="loadSeed()">🔁 Загрузить сид</button>
+            <button class="btn-small" onclick="copySeed()">📋 Копировать сид</button>
+</div>
+        </div>
+        
+        <div class="matrix-container" id="matrix"></div>
+        
+        <div class="legend" id="legend"></div>
+        
+        <div class="resource-selection">
+            <h3>Выбор ресурсов для матрицы:</h3>
+            <div class="resource-checkboxes" id="resourceCheckboxes"></div>
+            <div class="selection-controls">
+                <button class="btn-small" onclick="selectAll()">Выбрать все</button>
+                <button class="btn-small" onclick="deselectAll()">Снять все</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для статистики -->
+    <div id="statsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Статистика региона</div>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="statsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const resources = [
+            { name: 'Железная руда', color: '#8B4513', icon: '⛏️', enabled: true, rarity: 'common' },
+            { name: 'Медь', color: '#B87333', icon: '🔶', enabled: true, rarity: 'common' },
+            { name: 'Алюминий (бокситы)', color: '#C0C0C0', icon: '⚪', enabled: true, rarity: 'common' },
+            { name: 'Уголь', color: '#2F4F4F', icon: '⚫', enabled: true, rarity: 'common' },
+            { name: 'Нефть', color: '#191970', icon: '🛢️', enabled: true, rarity: 'common' },
+            { name: 'Природный газ', color: '#4169E1', icon: '💨', enabled: true, rarity: 'common' },
+            { name: 'Уран', color: '#FFFF00', icon: '☢️', enabled: true, rarity: 'rare' },
+            { name: 'Редкоземельные элементы', color: '#9932CC', icon: '💎', enabled: true, rarity: 'rare' },
+            { name: 'Фосфориты', color: '#FFE4B5', icon: '🧪', enabled: true, rarity: 'common' },
+            { name: 'Золото и серебро', color: '#FFD700', icon: '✨', enabled: true, rarity: 'rare' },
+            { name: 'Пшеница', color: '#F5DEB3', icon: '🌾', enabled: true, rarity: 'common' },
+            { name: 'Кукуруза', color: '#FFFF99', icon: '🌽', enabled: true, rarity: 'common' },
+            { name: 'Рис', color: '#FFFACD', icon: '🍚', enabled: true, rarity: 'common' },
+            { name: 'Соя', color: '#90EE90', icon: '🌱', enabled: true, rarity: 'common' },
+            { name: 'Лекарственные растения', color: '#98FB98', icon: '🌿', enabled: true, rarity: 'common' }
+        ];
+
+        let matrix = [];
+        let currentSeed = '';
+        let regionStats = []; // Массив для хранения статистики по регионам
+        let rows = 7;
+        let cols = 8;
+
+        function toggleResource(index) {
+            resources[index].enabled = !resources[index].enabled;
+            generateMatrix();
+        }
+
+        function selectAll() {
+            resources.forEach(resource => resource.enabled = true);
+            renderResourceCheckboxes();
+            generateMatrix();
+        }
+
+        function deselectAll() {
+            resources.forEach(resource => resource.enabled = false);
+            renderResourceCheckboxes();
+            generateMatrix();
+        }
+
+        function getEnabledResources() {
+            return resources.filter(resource => resource.enabled);
+        }
+        
+        function generateRandomSeed(length = 8) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'; // без цифр
+            let seed = '';
+            const array = new Uint8Array(length);
+            crypto.getRandomValues(array); // надёжный генератор
+            for (let i = 0; i < length; i++) {
+                seed += chars[array[i] % chars.length];
+            }
+            return seed;
+}
+
+        function loadSeed() {
+            const seed = document.getElementById('seedInput').value.trim();
+            if (seed) {
+                applySeed(seed);
+                generateMatrix();
+            }
+        }
+
+        function copySeed() {
+            navigator.clipboard.writeText(currentSeed).then(() => {
+            alert("Сид скопирован: " + currentSeed);
+        });
+}
+
+        function applySeed(seed) {
+            currentSeed = seed;
+        Math.seedrandom(seed); // Сеем генератор
+            }
+
+        function updateMatrixSize() {
+            rows = parseInt(document.getElementById('rows').value);
+            cols = parseInt(document.getElementById('cols').value);
+            
+            document.getElementById('rowsValue').textContent = rows;
+            document.getElementById('colsValue').textContent = cols;
+            
+            const matrixContainer = document.getElementById('matrix');
+            matrixContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            
+            generateMatrix();
+        }
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function generateRegionStats(enabledResources) {
+    const stats = {};
+
+    if (!currentSeed) {
+        currentSeed = generateRandomSeed();
+    }
+    applySeed(currentSeed);
+
+    const commonResources = enabledResources.filter(r => r.rarity === 'common');
+    const rareResources = enabledResources.filter(r => r.rarity === 'rare');
+
+    const minResources = Math.min(3, enabledResources.length);
+    const maxResources = Math.min(6, enabledResources.length);
+    const numResources = minResources + Math.floor(Math.random() * (maxResources - minResources + 1));
+
+    let selectedResources = [];
+
+    // Рандомно определяем, будет ли в регионе хотя бы один редкий ресурс
+    const includeRare = Math.random() < 0.5;
+
+    if (includeRare && rareResources.length > 0) {
+        // Добавим один случайный редкий ресурс
+        const rare = rareResources[Math.floor(Math.random() * rareResources.length)];
+        selectedResources.push(rare);
+
+        // Остальное заполним обычными
+        const remaining = numResources - 1;
+        const shuffledCommon = shuffleArray(commonResources);
+        selectedResources = selectedResources.concat(shuffledCommon.slice(0, remaining));
+    } else {
+        // Только обычные ресурсы
+        selectedResources = shuffleArray(commonResources).slice(0, numResources);
+    }
+
+    selectedResources = shuffleArray(selectedResources);
+
+    // Генерация процентов
+    let percentages = [];
+    let remaining = 100.0;
+    const dominantPercentage = Math.round((55 + Math.random() * 20) * 10) / 10;
+    percentages.push(dominantPercentage);
+    remaining -= dominantPercentage;
+
+    for (let i = 1; i < selectedResources.length - 1; i++) {
+        const maxForThis = Math.min(remaining - (selectedResources.length - i - 1) * 0.5, remaining * 0.8);
+        const minForThis = Math.max(0.5, remaining * 0.1);
+        const percentage = Math.round((minForThis + Math.random() * (maxForThis - minForThis)) * 10) / 10;
+        percentages.push(percentage);
+        remaining -= percentage;
+    }
+
+    if (selectedResources.length > 1) {
+        percentages.push(Math.round(remaining * 10) / 10);
+    }
+
+    selectedResources.forEach((resource, index) => {
+        stats[resource.name] = {
+            resource: resource,
+            percentage: percentages[index],
+            isDominant: index === 0
+        };
+    });
+
+    return stats;
+}
+
+        function generateMatrix() {
+            const enabledResources = getEnabledResources();
+
+            if (enabledResources.length === 0) {
+                document.getElementById('matrix').innerHTML = '<div style="color: white; text-align: center; grid-column: 1 / -1; padding: 20px; font-size: 18px;">Выберите хотя бы один ресурс для отображения</div>';
+                return;
+            }
+
+            const totalCells = rows * cols;
+            matrix = [];
+            regionStats = [];
+
+            // Получаем список редких ресурсов, которые включены
+            const rareResources = enabledResources.filter(r => r.rarity === 'rare');
+            // Список всех позиций в матрице
+            const allPositions = [];
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    allPositions.push([i, j]);
+                }
+            }
+            // Перемешиваем позиции
+            const shuffledPositions = shuffleArray(allPositions);
+
+            // Для каждого редкого ресурса выделяем по одной уникальной позиции
+            const rareResourceDominantPositions = {};
+            rareResources.forEach((rareResource, idx) => {
+                if (shuffledPositions.length > 0) {
+                    rareResourceDominantPositions[rareResource.name] = shuffledPositions.pop();
+                }
+            });
+
+            // Генерируем матрицу и статистику для каждого региона
+            for (let i = 0; i < rows; i++) {
+    matrix[i] = [];
+    regionStats[i] = [];
+    for (let j = 0; j < cols; j++) {
+        applySeed(`${currentSeed}_${i}_${j}`); // ← вот эта строка
+        
+        // Проверка на принудительное доминирование редкого ресурса
+        let forcedDominantResource = null;
+        for (const rareName in rareResourceDominantPositions) {
+            const [ri, rj] = rareResourceDominantPositions[rareName];
+            if (ri === i && rj === j) {
+                forcedDominantResource = rareResources.find(r => r.name === rareName);
+                break;
+            }
+        }
+
+        let stats;
+        if (forcedDominantResource) {
+            stats = generateRegionStatsWithDominant(enabledResources, forcedDominantResource);
+        } else {
+            stats = generateRegionStats(enabledResources);
+        }
+
+        regionStats[i][j] = stats;
+        const dominantResource = Object.values(stats).find(item => item.isDominant);
+        matrix[i][j] = dominantResource.resource;
+    }
+}
+            
+            renderMatrix();
+        }
+
+        // Функция для генерации статистики с заданным доминирующим ресурсом
+        function generateRegionStatsWithDominant(enabledResources, dominantResource) {
+            const stats = {};
+
+            // Минимум 3 ресурса в регионе
+            const minResources = Math.min(3, enabledResources.length);
+            const maxResources = Math.min(6, enabledResources.length);
+            const numResources = minResources + Math.floor(Math.random() * (maxResources - minResources + 1));
+
+            // Выбираем остальные ресурсы случайно, кроме доминирующего
+            const otherResources = enabledResources.filter(r => r.name !== dominantResource.name);
+            let selectedResources = shuffleArray(otherResources).slice(0, numResources - 1);
+            // Вставляем доминирующий ресурс в начало
+            selectedResources.unshift(dominantResource);
+
+            // Генерируем процентное соотношение с десятичными числами
+            let percentages = [];
+            let remaining = 100.0;
+
+            // Первый ресурс (доминирующий) - от 55% до 75%
+            const dominantPercentage = Math.round((55 + Math.random() * 20) * 10) / 10;
+            percentages.push(dominantPercentage);
+            remaining -= dominantPercentage;
+
+            // Распределяем оставшиеся проценты между остальными ресурсами
+            for (let i = 1; i < selectedResources.length - 1; i++) {
+                const maxForThis = Math.min(remaining - (selectedResources.length - i - 1) * 0.5, remaining * 0.8);
+                const minForThis = Math.max(0.5, remaining * 0.1);
+                const percentage = Math.round((minForThis + Math.random() * (maxForThis - minForThis)) * 10) / 10;
+                percentages.push(percentage);
+                remaining -= percentage;
+            }
+
+            // Последний ресурс получает все оставшиеся проценты (округленные)
+            if (selectedResources.length > 1) {
+                percentages.push(Math.round(remaining * 10) / 10);
+            }
+
+            // Создаем объект статистики
+            selectedResources.forEach((resource, index) => {
+                stats[resource.name] = {
+                    resource: resource,
+                    percentage: percentages[index],
+                    isDominant: index === 0
+                };
+            });
+
+            return stats;
+        }
+
+        function renderMatrix() {
+            const matrixContainer = document.getElementById('matrix');
+            matrixContainer.innerHTML = '';
+            
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    const resource = matrix[i][j];
+                    const mainColor = resource.color;
+                    const darkColor = resource.color + 'dd';
+                    
+                    cell.style.setProperty('--main-color', mainColor);
+                    cell.style.setProperty('--main-color-dark', darkColor);
+                    
+                    cell.innerHTML = `
+                        <div class="cell-coordinates">${i + 1}.${j + 1}</div>
+                        <div class="cell-icon">${resource.icon}</div>
+                        <div class="cell-name">${resource.name}</div>
+                    `;
+                    
+                    cell.addEventListener('click', () => {
+                        showRegionStats(i, j);
+                    });
+                    
+                    matrixContainer.appendChild(cell);
+                }
+            }
+        }
+
+        function showRegionStats(row, col) {
+            const stats = regionStats[row][col];
+            const statsArray = Object.values(stats).sort((a, b) => b.percentage - a.percentage);
+            
+            let statsHTML = `
+                <ul class="stats-list">
+            `;
+            
+            statsArray.forEach(item => {
+                statsHTML += `
+                    <li class="stats-item">
+                        <div class="stats-resource">
+                            <div class="stats-color" style="background: ${item.resource.color}"></div>
+                            <div class="stats-icon">${item.resource.icon}</div>
+                            <div class="stats-name">${item.resource.name}</div>
+                        </div>
+                        <div class="stats-percentage ${item.isDominant ? 'dominant' : ''}">${item.percentage}%</div>
+                    </li>
+                `;
+            });
+            
+            statsHTML += `
+                </ul>
+                <div class="region-coordinates">
+                    Регион: Строка ${row + 1}, Столбец ${col + 1}
+                </div>
+            `;
+            
+            document.getElementById('statsContent').innerHTML = statsHTML;
+            document.getElementById('statsModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('statsModal').style.display = 'none';
+        }
+
+        // Закрытие модального окна при клике вне его
+        window.onclick = function(event) {
+            const modal = document.getElementById('statsModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Закрытие модального окна при нажатии Escape
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        function renderResourceCheckboxes() {
+            const checkboxContainer = document.getElementById('resourceCheckboxes');
+            checkboxContainer.innerHTML = '';
+            
+            resources.forEach((resource, index) => {
+                const checkboxItem = document.createElement('div');
+                checkboxItem.className = 'checkbox-item';
+                checkboxItem.onclick = () => {
+                    const checkbox = checkboxItem.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !checkbox.checked;
+                    toggleResource(index);
+                };
+                
+                checkboxItem.innerHTML = `
+                    <input type="checkbox" ${resource.enabled ? 'checked' : ''} onclick="event.stopPropagation(); toggleResource(${index})">
+                    <div class="checkbox-content">
+                        <div class="checkbox-color" style="background: ${resource.color}"></div>
+                        <div class="checkbox-icon">${resource.icon}</div>
+                        <div class="checkbox-text">${resource.name}</div>
+                    </div>
+                `;
+                
+                checkboxContainer.appendChild(checkboxItem);
+            });
+        }
+
+        function renderLegend() {
+            const legendContainer = document.getElementById('legend');
+            legendContainer.innerHTML = '';
+            
+            resources.forEach(resource => {
+                const legendItem = document.createElement('div');
+                legendItem.className = 'legend-item';
+                legendItem.style.opacity = resource.enabled ? '1' : '0.3';
+                legendItem.innerHTML = `
+                    <div class="legend-color" style="background: ${resource.color}"></div>
+                    <div class="legend-icon">${resource.icon}</div>
+                    <div class="legend-text">${resource.name}</div>
+                `;
+                legendContainer.appendChild(legendItem);
+            });
+        }
+
+        // Инициализация при загрузке страницы
+        window.onload = function() {
+            renderResourceCheckboxes();
+            updateMatrixSize();
+            renderLegend();
+            const urlParams = new URLSearchParams(window.location.search);
+const seedParam = urlParams.get('seed');
+if (seedParam) {
+    document.getElementById('seedInput').value = seedParam;
+    applySeed(seedParam);
+    generateMatrix();
+}
+        };
+    </script>
+</body>
+</html>
